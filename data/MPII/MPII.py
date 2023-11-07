@@ -9,7 +9,7 @@ import torch
 from pycocotools.coco import COCO
 from utils.human_models import smpl_x
 from utils.preprocessing import load_img, process_bbox, augmentation, process_db_coord, \
-    process_human_model_output
+    process_human_model_output, load_img_zh
 import random
 from humandata import Cache
 # from utils.vis import vis_keypoints, vis_mesh, save_obj

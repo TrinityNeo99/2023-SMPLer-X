@@ -4,6 +4,7 @@ import sys
 import datetime
 from mmcv import Config as MMConfig
 
+
 class Config:
     def get_config_fromfile(self, config_path):
         self.config_path = config_path
@@ -25,7 +26,7 @@ class Config:
                 add_pypath(osp.join(self.root_dir, 'data', dataset))
         add_pypath(osp.join(self.root_dir, 'data'))
         add_pypath(self.data_dir)
-                
+
     def prepare_dirs(self, exp_name):
         time_str = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         self.output_dir = osp.join(self.root_dir, f'{exp_name}_{time_str}')
@@ -62,11 +63,12 @@ class Config:
     def update_config(self, num_gpus, exp_name):
         self.num_gpus = num_gpus
         self.exp_name = exp_name
-        
+
         self.prepare_dirs(self.exp_name)
-        
+
         # Save
         cfg_save = MMConfig(self.__dict__)
-        cfg_save.dump(osp.join(self.code_dir,'config_base.py'))
+        # cfg_save.dump(osp.join(self.code_dir, 'config_base.py'))
+
 
 cfg = Config()

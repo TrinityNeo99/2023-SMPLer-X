@@ -13,7 +13,7 @@ from config import cfg
 import cv2
 from tqdm import tqdm
 import json
-from typing import Literal, Union
+from typing_extensions import Literal, Union
 from mmdet.apis import init_detector, inference_detector
 from utils.inference_utils import process_mmdet_results, non_max_suppression
 
@@ -53,7 +53,7 @@ def main():
 
     # load model
     from base import Demoer
-    from utils.preprocessing import load_img, process_bbox, generate_patch_image
+    from utils.preprocessing import load_img, process_bbox, generate_patch_image, load_img_zh, save_img_zh
     from utils.vis import render_mesh, save_obj
     from utils.human_models import smpl_x
     demoer = Demoer()
@@ -75,7 +75,7 @@ def main():
 
         # prepare input image
         transform = transforms.ToTensor()
-        original_img = load_img(img_path)
+        original_img = load_img_zh(img_path)
         vis_img = original_img.copy()
         original_img_height, original_img_width = original_img.shape[:2]
         os.makedirs(args.output_folder, exist_ok=True)
@@ -178,10 +178,11 @@ def main():
                 outfile.write(json_object)
 
         ## save rendered image with all person
-        frame_name = img_path.split('/')[-1]
+        frame_name = os.path.basename(img_path)
         save_path_img = os.path.join(args.output_folder, 'img')
         os.makedirs(save_path_img, exist_ok= True)
-        cv2.imwrite(os.path.join(save_path_img, f'{frame_name}'), vis_img[:, :, ::-1])
+        # cv2.imwrite(os.path.join(save_path_img, f'{frame_name}'), vis_img[:, :, ::-1])
+        save_img_zh(os.path.join(save_path_img, f'{frame_name}'), vis_img)
 
 
 if __name__ == "__main__":

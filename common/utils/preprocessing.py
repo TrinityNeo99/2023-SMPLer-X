@@ -9,6 +9,17 @@ from plyfile import PlyData, PlyElement
 import torch
 
 
+def load_img_zh(filePath):
+    img = cv2.imdecode(np.fromfile(filePath, dtype=np.uint8), -1)
+    ## imdecode读取的是rgb，如果后续需要opencv处理的话，需要转换成bgr，转换后图片颜色会变化
+    ##cv_img=cv2.cvtColor(cv_img,cv2.COLOR_RGB2BGR)
+    if not isinstance(img, np.ndarray):
+        raise IOError("Fail to read %s" % path)
+    return img
+
+def save_img_zh(filePath, frame):
+    cv2.imencode('.jpg', frame)[1].tofile(filePath)
+
 def load_img(path, order='RGB'):
     img = cv2.imread(path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
     if not isinstance(img, np.ndarray):
@@ -206,10 +217,12 @@ def process_db_coord(joint_img, joint_cam, joint_valid, do_flip, img_shape, flip
     joint_img[:, 1] = joint_img[:, 1] / cfg.input_img_shape[0] * cfg.output_hm_shape[1]
 
     # check truncation
-    joint_trunc = joint_valid * ((joint_img_original[:, 0] > 0) * (joint_img[:, 0] >= 0) * (joint_img[:, 0] < cfg.output_hm_shape[2]) * \
-                                 (joint_img_original[:, 1] > 0) *(joint_img[:, 1] >= 0) * (joint_img[:, 1] < cfg.output_hm_shape[1]) * \
-                                 (joint_img_original[:, 2] > 0) *(joint_img[:, 2] >= 0) * (joint_img[:, 2] < cfg.output_hm_shape[0])).reshape(-1,
-                                                                                                              1).astype(
+    joint_trunc = joint_valid * (
+                (joint_img_original[:, 0] > 0) * (joint_img[:, 0] >= 0) * (joint_img[:, 0] < cfg.output_hm_shape[2]) * \
+                (joint_img_original[:, 1] > 0) * (joint_img[:, 1] >= 0) * (joint_img[:, 1] < cfg.output_hm_shape[1]) * \
+                (joint_img_original[:, 2] > 0) * (joint_img[:, 2] >= 0) * (
+                            joint_img[:, 2] < cfg.output_hm_shape[0])).reshape(-1,
+                                                                               1).astype(
         np.float32)
 
     # transform joints to target db joints
@@ -222,26 +235,28 @@ def process_db_coord(joint_img, joint_cam, joint_valid, do_flip, img_shape, flip
     joint_cam_ra = joint_cam_wo_ra.copy()
     joint_cam_ra = joint_cam_ra - joint_cam_ra[smpl_x.root_joint_idx, None, :]  # root-relative
     joint_cam_ra[smpl_x.joint_part['lhand'], :] = joint_cam_ra[smpl_x.joint_part['lhand'], :] - joint_cam_ra[
-                                                                                            smpl_x.lwrist_idx, None,
-                                                                                            :]  # left hand root-relative
+                                                                                                smpl_x.lwrist_idx, None,
+                                                                                                :]  # left hand root-relative
     joint_cam_ra[smpl_x.joint_part['rhand'], :] = joint_cam_ra[smpl_x.joint_part['rhand'], :] - joint_cam_ra[
-                                                                                            smpl_x.rwrist_idx, None,
-                                                                                            :]  # right hand root-relative
-    joint_cam_ra[smpl_x.joint_part['face'], :] = joint_cam_ra[smpl_x.joint_part['face'], :] - joint_cam_ra[smpl_x.neck_idx,
-                                                                                        None,
-                                                                                        :]  # face root-relative
+                                                                                                smpl_x.rwrist_idx, None,
+                                                                                                :]  # right hand root-relative
+    joint_cam_ra[smpl_x.joint_part['face'], :] = joint_cam_ra[smpl_x.joint_part['face'], :] - joint_cam_ra[
+                                                                                              smpl_x.neck_idx,
+                                                                                              None,
+                                                                                              :]  # face root-relative
 
     return joint_img, joint_cam_wo_ra, joint_cam_ra, joint_valid, joint_trunc
 
 
-def process_human_model_output(human_model_param, cam_param, do_flip, img_shape, img2bb_trans, rot, human_model_type, joint_img=None):
+def process_human_model_output(human_model_param, cam_param, do_flip, img_shape, img2bb_trans, rot, human_model_type,
+                               joint_img=None):
     if human_model_type == 'smplx':
         human_model = smpl_x
         rotation_valid = np.ones((smpl_x.orig_joint_num), dtype=np.float32)
         coord_valid = np.ones((smpl_x.joint_num), dtype=np.float32)
 
         root_pose, body_pose, shape, trans = human_model_param['root_pose'], human_model_param['body_pose'], \
-                                             human_model_param['shape'], human_model_param['trans']
+            human_model_param['shape'], human_model_param['trans']
         if 'lhand_pose' in human_model_param and human_model_param['lhand_valid']:
             lhand_pose = human_model_param['lhand_pose']
         else:
@@ -310,8 +325,8 @@ def process_human_model_output(human_model_param, cam_param, do_flip, img_shape,
 
         # joint coordinates
         if 'focal' not in cam_param or 'princpt' not in cam_param:
-            assert joint_img is not None 
-        else:   
+            assert joint_img is not None
+        else:
             joint_img = cam2pixel(joint_cam, cam_param['focal'], cam_param['princpt'])
 
         joint_img_original = joint_img.copy()
@@ -327,13 +342,13 @@ def process_human_model_output(human_model_param, cam_param, do_flip, img_shape,
                                                                                             None,
                                                                                             :]  # face root-relative
         joint_img[smpl_x.joint_part['body'], 2] = (joint_cam[smpl_x.joint_part['body'], 2].copy() / (
-                    cfg.body_3d_size / 2) + 1) / 2. * cfg.output_hm_shape[0]  # body depth discretize
+                cfg.body_3d_size / 2) + 1) / 2. * cfg.output_hm_shape[0]  # body depth discretize
         joint_img[smpl_x.joint_part['lhand'], 2] = (joint_cam[smpl_x.joint_part['lhand'], 2].copy() / (
-                    cfg.hand_3d_size / 2) + 1) / 2. * cfg.output_hm_shape[0]  # left hand depth discretize
+                cfg.hand_3d_size / 2) + 1) / 2. * cfg.output_hm_shape[0]  # left hand depth discretize
         joint_img[smpl_x.joint_part['rhand'], 2] = (joint_cam[smpl_x.joint_part['rhand'], 2].copy() / (
-                    cfg.hand_3d_size / 2) + 1) / 2. * cfg.output_hm_shape[0]  # right hand depth discretize
+                cfg.hand_3d_size / 2) + 1) / 2. * cfg.output_hm_shape[0]  # right hand depth discretize
         joint_img[smpl_x.joint_part['face'], 2] = (joint_cam[smpl_x.joint_part['face'], 2].copy() / (
-                    cfg.face_3d_size / 2) + 1) / 2. * cfg.output_hm_shape[0]  # face depth discretize
+                cfg.face_3d_size / 2) + 1) / 2. * cfg.output_hm_shape[0]  # face depth discretize
 
     elif human_model_type == 'smpl':
         human_model = smpl
@@ -374,10 +389,10 @@ def process_human_model_output(human_model_param, cam_param, do_flip, img_shape,
 
         # joint coordinates
         if 'focal' not in cam_param or 'princpt' not in cam_param:
-            assert joint_img is not None 
-        else:   
+            assert joint_img is not None
+        else:
             joint_img = cam2pixel(joint_cam, cam_param['focal'], cam_param['princpt'])
-        
+
         joint_img_original = joint_img.copy()
         joint_cam = joint_cam - joint_cam[smpl.root_joint_idx, None, :]  # body root-relative
         joint_img[:, 2] = (joint_cam[:, 2].copy() / (cfg.body_3d_size / 2) + 1) / 2. * cfg.output_hm_shape[
@@ -419,8 +434,8 @@ def process_human_model_output(human_model_param, cam_param, do_flip, img_shape,
 
         # joint coordinates
         if 'focal' not in cam_param or 'princpt' not in cam_param:
-            assert joint_img is not None 
-        else:   
+            assert joint_img is not None
+        else:
             joint_img = cam2pixel(joint_cam, cam_param['focal'], cam_param['princpt'])
         joint_cam = joint_cam - joint_cam[mano.root_joint_idx, None, :]  # hand root-relative
         joint_img[:, 2] = (joint_cam[:, 2].copy() / (cfg.hand_3d_size / 2) + 1) / 2. * cfg.output_hm_shape[
@@ -449,9 +464,11 @@ def process_human_model_output(human_model_param, cam_param, do_flip, img_shape,
 
     # check truncation
     # TODO
-    joint_trunc = ((joint_img_original[:, 0] > 0) * (joint_img[:, 0] >= 0) * (joint_img[:, 0] < cfg.output_hm_shape[2]) * \
-                   (joint_img_original[:, 1] > 0) * (joint_img[:, 1] >= 0) * (joint_img[:, 1] < cfg.output_hm_shape[1]) * \
-                   (joint_img_original[:, 2] > 0) * (joint_img[:, 2] >= 0) * (joint_img[:, 2] < cfg.output_hm_shape[0])).reshape(-1, 1).astype(
+    joint_trunc = (
+                (joint_img_original[:, 0] > 0) * (joint_img[:, 0] >= 0) * (joint_img[:, 0] < cfg.output_hm_shape[2]) * \
+                (joint_img_original[:, 1] > 0) * (joint_img[:, 1] >= 0) * (joint_img[:, 1] < cfg.output_hm_shape[1]) * \
+                (joint_img_original[:, 2] > 0) * (joint_img[:, 2] >= 0) * (
+                            joint_img[:, 2] < cfg.output_hm_shape[0])).reshape(-1, 1).astype(
         np.float32)
 
     # 3D data rotation augmentation
@@ -525,16 +542,17 @@ def load_ply(file_name):
     v = np.stack((x, y, z), 1)
     return v
 
+
 def resize_bbox(bbox, scale=1.2):
     if isinstance(bbox, list):
         x1, y1, x2, y2 = bbox[0], bbox[1], bbox[2], bbox[3]
     else:
         x1, y1, x2, y2 = bbox
-    x_center = (x1+x2)/2.0
-    y_center = (y1+y2)/2.0
-    x_size, y_size = x2-x1, y2-y1
-    x1_resize = x_center-x_size/2.0*scale
-    x2_resize = x_center+x_size/2.0*scale
+    x_center = (x1 + x2) / 2.0
+    y_center = (y1 + y2) / 2.0
+    x_size, y_size = x2 - x1, y2 - y1
+    x1_resize = x_center - x_size / 2.0 * scale
+    x2_resize = x_center + x_size / 2.0 * scale
     y1_resize = y_center - y_size / 2.0 * scale
     y2_resize = y_center + y_size / 2.0 * scale
     bbox[0], bbox[1], bbox[2], bbox[3] = x1_resize, y1_resize, x2_resize, y2_resize

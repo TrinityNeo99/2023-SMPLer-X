@@ -28,31 +28,28 @@ echo $end_count
 
 # inference
 PYTHONPATH="$(dirname $0)/..":$PYTHONPATH \
-srun -p ${PARTITION} \
-    --job-name=${JOB_NAME} \
-    --gres=gpu:${GPUS_PER_NODE} \
-    --ntasks=${GPUS} \
-    --ntasks-per-node=${GPUS_PER_NODE} \
-    --cpus-per-task=${CPUS_PER_TASK} \
-    --kill-on-bad-exit=1 \
-    ${SRUN_ARGS} \
-    python inference.py \
-    --num_gpus ${GPUS_PER_NODE} \
-    --exp_name output/demo_${JOB_NAME} \
-    --pretrained_model ${CKPT} \
-    --agora_benchmark agora_model \
-    --img_path ${IMG_PATH} \
-    --start 1 \
-    --end  $end_count \
-    --output_folder ${SAVE_DIR} \
-    --show_verts \
-    --show_bbox \
-    --save_mesh \
-    # --multi_person \
-    # --iou_thr 0.2 \
-    # --bbox_thr 20
+
+python inference.py \
+--num_gpus ${GPUS_PER_NODE} \
+--exp_name output/demo_${JOB_NAME} \
+--pretrained_model ${CKPT} \
+--agora_benchmark agora_model \
+--img_path ${IMG_PATH} \
+--start 1 \
+--end  $end_count \
+--output_folder ${SAVE_DIR} \
+--show_verts \
+--show_bbox \
+--save_mesh \
+# --multi_person \
+# --iou_thr 0.2 \
+# --bbox_thr 20
 
 
 # images to video
 ffmpeg -y -f image2 -r ${FPS} -i ${SAVE_DIR}/img/%06d.jpg -vcodec mjpeg -qscale 0 -pix_fmt yuv420p ../demo/results/${INPUT_VIDEO}.mp4
 
+ffmpeg -framerate 30 -i ../demo/results/正手攻球-完美动作-60fps/img/%06d.jpg -c:v libx264 -r 30 -pix_fmt yuv420p ../demo/results/正手攻球-完美动作-60fps.mp4
+
+
+ffmpeg -y -f image2 -r 30 -i ../demo/results/正手攻球-完美动作-60fps/img/%06d.jpg -vcodec mjpeg -qscale 0 -pix_fmt yuv420p ../demo/results/正手攻球-完美动作-60fps.mp4

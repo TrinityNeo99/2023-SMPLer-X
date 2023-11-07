@@ -5,7 +5,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import os
-os.environ["PYOPENGL_PLATFORM"] = "egl"
+os.environ["PYOPENGL_PLATFORM"] = "GL" #pyopengl_platform
 import pyrender
 import trimesh
 from config import cfg

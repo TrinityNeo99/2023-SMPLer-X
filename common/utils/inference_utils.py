@@ -1,4 +1,4 @@
-from typing import Literal, Union
+from typing_extensions import Literal, Union
 
 def process_mmdet_results(mmdet_results: list,
                           cat_id: int = 0,
